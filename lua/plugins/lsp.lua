@@ -6,7 +6,7 @@ return {
     'WhoIsSethDaniel/mason-tool-installer.nvim',
     { 'j-hui/fidget.nvim', opts = {} },
     'b0o/SchemaStore.nvim',
-    -- 'saghen/blink.cmp' will be added in Commit 4; capabilities augment via pcall
+    'saghen/blink.cmp',
   },
   config = function()
     -- ============== Diagnostic display ==============
