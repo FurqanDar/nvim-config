@@ -13,11 +13,24 @@ return {
   config = function()
     require('ufo').setup({
       provider_selector = function(bufnr, filetype, buftype)
-        -- Skip transient/special buffers (mini.files panes, terminal, prompts,
-        -- etc.) — they have no LSP and no parser, so both providers throw
-        -- UfoFallbackException, which leaks into :messages.
+        -- Skip transient/special buffers — they have no LSP and no parser, so
+        -- both providers throw UfoFallbackException into :messages.
         if buftype ~= '' then return '' end
-        if filetype:match('^minifiles') then return '' end
+        local skip_ft = {
+          ['minifiles']       = true,
+          ['minifiles-window'] = true,
+          ['undotree']        = true,
+          ['diff']            = true,
+          ['neo-tree']        = true,
+          ['oil']             = true,
+          ['help']            = true,
+          ['lazy']            = true,
+          ['mason']           = true,
+          ['fugitive']        = true,
+        }
+        if skip_ft[filetype] or filetype:match('^dapui') or filetype:match('^minifiles') then
+          return ''
+        end
         return { 'lsp', 'treesitter' }
       end,
       preview = {
