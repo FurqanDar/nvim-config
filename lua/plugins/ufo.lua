@@ -11,27 +11,36 @@ return {
   end,
 
   config = function()
+    -- Filetypes/buftypes where ufo should never attach. Used both by the
+    -- provider_selector (attach-time check) and by the detach autocmd below
+    -- (post-mutation safety net).
+    local function should_skip(bufnr, filetype, buftype)
+      if buftype ~= '' then return true end           -- terminal, prompt, nofile, quickfix
+      local skip_ft = {
+        ['minifiles']        = true, ['minifiles-window'] = true,
+        ['undotree']         = true, ['diff']             = true,
+        ['neo-tree']         = true, ['oil']              = true,
+        ['help']             = true, ['lazy']             = true,
+        ['mason']            = true, ['fugitive']         = true,
+        ['TelescopePrompt']  = true, ['TelescopeResults'] = true,
+        ['noice']            = true, ['Trouble']          = true,
+        ['qf']               = true, ['which-key']        = true,
+        ['snacks_picker_input'] = true, ['snacks_picker_list'] = true,
+      }
+      if skip_ft[filetype] then return true end
+      if filetype:match('^dapui')     then return true end
+      if filetype:match('^minifiles') then return true end
+      return false
+    end
+
     require('ufo').setup({
       provider_selector = function(bufnr, filetype, buftype)
-        -- Skip transient/special buffers — they have no LSP and no parser, so
-        -- both providers throw UfoFallbackException into :messages.
-        if buftype ~= '' then return '' end
-        local skip_ft = {
-          ['minifiles']       = true,
-          ['minifiles-window'] = true,
-          ['undotree']        = true,
-          ['diff']            = true,
-          ['neo-tree']        = true,
-          ['oil']             = true,
-          ['help']            = true,
-          ['lazy']            = true,
-          ['mason']           = true,
-          ['fugitive']        = true,
-        }
-        if skip_ft[filetype] or filetype:match('^dapui') or filetype:match('^minifiles') then
-          return ''
-        end
-        return { 'lsp', 'treesitter' }
+        if should_skip(bufnr, filetype, buftype) then return '' end
+        -- {'lsp', 'indent'} not {'lsp', 'treesitter'}: indent ALWAYS succeeds,
+        -- so the fallback chain can't bottom out as UnhandledPromiseRejection.
+        -- The plan's {'lsp', 'treesitter'} explodes whenever a buffer's
+        -- filetype has no treesitter parser AND LSP didn't return folds.
+        return { 'lsp', 'indent' }
       end,
       preview = {
         win_config = {
@@ -59,5 +68,21 @@ return {
       if winid then return end
       vim.lsp.buf.hover()
     end, { desc = 'Peek fold / LSP hover' })
+
+    -- Safety net: detach ufo + disable folding on special buffers whose
+    -- filetype/buftype only resolves AFTER ufo has attached (e.g. terminal
+    -- buffers post `:terminal`, dap-ui panes post-spawn, telescope previews).
+    -- provider_selector alone can't catch these — its result is cached.
+    vim.api.nvim_create_autocmd({ 'FileType', 'TermOpen', 'BufWinEnter' }, {
+      group = vim.api.nvim_create_augroup('user-ufo-detach-special', { clear = true }),
+      callback = function(args)
+        local buf = args.buf
+        if not vim.api.nvim_buf_is_valid(buf) then return end
+        if should_skip(buf, vim.bo[buf].filetype, vim.bo[buf].buftype) then
+          pcall(require('ufo').detach, buf)
+          vim.bo[buf].foldenable = false
+        end
+      end,
+    })
   end,
 }
