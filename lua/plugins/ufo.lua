@@ -69,18 +69,19 @@ return {
       vim.lsp.buf.hover()
     end, { desc = 'Peek fold / LSP hover' })
 
-    -- Safety net: detach ufo + disable folding on special buffers whose
-    -- filetype/buftype only resolves AFTER ufo has attached (e.g. terminal
-    -- buffers post `:terminal`, dap-ui panes post-spawn, telescope previews).
-    -- provider_selector alone can't catch these — its result is cached.
-    vim.api.nvim_create_autocmd({ 'FileType', 'TermOpen', 'BufWinEnter' }, {
+    -- Safety net: detach ufo on special buffers whose filetype/buftype only
+    -- resolves AFTER ufo attached (terminal post-`:terminal`, dap-ui panes,
+    -- telescope previews, fidget popups). provider_selector's result is
+    -- cached, so it can't catch these post-attach state mutations.
+    -- detach() alone is the documented disable mechanism — foldenable is
+    -- window-local, not buffer-local, so trying to set it via vim.bo errors.
+    vim.api.nvim_create_autocmd({ 'FileType', 'TermOpen' }, {
       group = vim.api.nvim_create_augroup('user-ufo-detach-special', { clear = true }),
       callback = function(args)
         local buf = args.buf
         if not vim.api.nvim_buf_is_valid(buf) then return end
         if should_skip(buf, vim.bo[buf].filetype, vim.bo[buf].buftype) then
           pcall(require('ufo').detach, buf)
-          vim.bo[buf].foldenable = false
         end
       end,
     })
