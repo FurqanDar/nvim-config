@@ -22,3 +22,24 @@ vim.keymap.set('n', 'j', 'gj', { silent = true })
 vim.keymap.set('n', '<leader><leader>x', '<cmd>source %<CR>', { desc = 'Source current file' })
 vim.keymap.set('n', '<leader>x', ':.lua<CR>', { desc = 'Run current line in Lua' })
 vim.keymap.set('v', '<leader>x', ':lua<CR>',  { desc = 'Run current selection in Lua' })
+
+-- Toggle blink.cmp completion. Buffer-local via vim.b.completion (honored by
+-- blink's default `enabled` predicate); global via vim.g.completion_enabled
+-- (honored by the `enabled` function in plugins/completion.lua).
+vim.keymap.set('n', '<leader>ta', function()
+  vim.b.completion = (vim.b.completion == false) and true or false
+  vim.notify('blink.cmp: ' .. (vim.b.completion and 'enabled' or 'disabled') .. ' (buffer)',
+    vim.log.levels.INFO)
+end, { desc = '[T]oggle [A]utocomplete (buffer)' })
+
+vim.keymap.set('n', '<leader>tA', function()
+  vim.g.completion_enabled = (vim.g.completion_enabled == false)
+  vim.notify('blink.cmp: ' .. (vim.g.completion_enabled and 'enabled' or 'disabled') .. ' (global)',
+    vim.log.levels.INFO)
+end, { desc = '[T]oggle [A]utocomplete (global)' })
+
+vim.keymap.set('n', '<leader>tu', function()
+  vim.g.neotest_direct_venv = not vim.g.neotest_direct_venv
+  vim.notify('neotest: ' .. (vim.g.neotest_direct_venv and '.venv direct mode' or 'uv run mode (default)'),
+    vim.log.levels.INFO)
+end, { desc = '[T]oggle neotest [U]v/direct mode' })
