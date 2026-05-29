@@ -48,7 +48,7 @@ return {
 		},
 
 		appearance = {
-			use_nerd_font_variants = true,
+			-- use_nerd_font_variants = true,
 			nerd_font_variant = "mono",
 		},
 
